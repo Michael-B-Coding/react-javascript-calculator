@@ -1,0 +1,200 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>React - JavaScript Calculator</title>
+
+    <!-- <link rel="stylesheet" href="css/styles.css?v=1.0"> -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.0.2/css/bootstrap.min.css">
+
+    <style>
+        * {
+            font-size: 24px;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div id="App"></div>
+
+    <script type="text/babel">
+
+        const Display = (props) => {
+            return (
+                <div className="d-flex flex-fill flex-column">
+                    <label id="result" className="flex-fill text-end p-2">{props.result}</label>
+                    <label id="display" className="flex-fill text-end p-2">{props.input}</label>
+                </div>
+            )
+        }
+
+        const ButtonControl = (props) => {
+
+            const css = { ...props.css };
+
+            return <button id={props.controlConfig.id} className="calc-control btn btn-primary rounded-0 border-dark p-2" onClick={props.handleButtonControlInput} style={css}>{props.controlConfig.text}</button>
+        }
+
+        // App
+        class CalculatorApp extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    input: '0',
+                    result: '0'
+                };
+
+                this.handleButtonControlInput = this.handleButtonControlInput.bind(this);
+            }
+
+            processCalculation = () => {
+                try {
+                    this.setState((prevState) => ({
+                        input: eval(prevState.input),
+                        result: prevState.input + " = " + eval(prevState.input)
+                    }));
+                } catch (e) {
+                    console.log(e);
+                    this.setState({
+                        input: '0',
+                        result: ''
+                    });
+                }
+            }
+
+            regexBadZeroInput = (inputToTest) => {
+                // test for incorrect preceeding zero's
+                // true = matches bad test
+                var regExp = /^0[0-9].*$/;
+                return regExp.test(inputToTest);
+            }
+
+            handleButtonControlInput = (e) => {
+                console.log(e.target.id);
+                switch (e.target.id) {
+                    case "equals":
+                        this.processCalculation()
+                        break;
+                    case "clear":
+                        this.setState((prevState) => ({
+                            input: '0',
+                            result: ''
+                        }));
+                        break;
+                    case "multiply":
+                        this.setState((prevState) => ({
+                            input: prevState.input + '*',
+                            result: prevState.result
+                        }));
+                        break;
+                    case "divide":
+                        this.setState((prevState) => ({
+                            input: prevState.input + '/',
+                            result: prevState.result
+                        }));
+                        break;
+                    case "add":
+                        this.setState((prevState) => ({
+                            input: prevState.input + '+',
+                            result: prevState.result
+                        }));
+                        break;
+                    case "subtract":
+                        this.setState((prevState) => ({
+                            input: prevState.input + '-',
+                            result: prevState.result
+                        }));
+                        break;
+                    case "decimal":
+                        this.setState((prevState) => ({
+                            input: prevState.input + '.',
+                            result: prevState.result
+                        }));
+                        break;
+                    case "one":
+                    case "two":
+                    case "three":
+                    case "four":
+                    case "five":
+                    case "six":
+                    case "seven":
+                    case "eight":
+                    case "nine":
+                        this.setState((prevState) => {
+                            return ({
+                                input: prevState.input == '0' ? e.target.innerText : prevState.input + e.target.innerText,
+                                result: prevState.result
+                            })
+                        });
+                        break;
+                    case "zero":
+                        this.setState((prevState) => ({
+                            input: prevState.input == '0' ? prevState.input : prevState.input + e.target.innerText,
+                            result: prevState.result
+                        }));
+                        break;
+                }
+            };
+
+            render() {
+
+                let style = {
+                    width: "50%"
+                }
+
+                return (
+                    <div className="d-flex justify-content-center border border-primary">
+                        <div className="d-flex flex-column justify-content-center border border-dark" style={style}>
+                            <Display input={this.state.input} result={this.state.result} />
+                            <div className="d-flex flex-row">
+                                <ButtonControl controlConfig={{ text: "AC", id: "clear" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "50%" }} />
+                                <ButtonControl controlConfig={{ text: "/", id: "divide" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
+                                <ButtonControl controlConfig={{ text: "X", id: "multiply" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
+                            </div>
+                            <div className="d-flex flex-row">
+                                <ButtonControl controlConfig={{ text: "7", id: "seven" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
+                                <ButtonControl controlConfig={{ text: "8", id: "eight" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
+                                <ButtonControl controlConfig={{ text: "9", id: "nine" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
+                                <ButtonControl controlConfig={{ text: "-", id: "subtract" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
+                            </div>
+                            <div className="d-flex flex-row">
+                                <ButtonControl controlConfig={{ text: "4", id: "four" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
+                                <ButtonControl controlConfig={{ text: "5", id: "five" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
+                                <ButtonControl controlConfig={{ text: "6", id: "six" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
+                                <ButtonControl controlConfig={{ text: "+", id: "add" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
+                            </div>
+                            <div className="d-flex flex-row">
+                                <ButtonControl controlConfig={{ text: "1", id: "one" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
+                                <ButtonControl controlConfig={{ text: "2", id: "two" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
+                                <ButtonControl controlConfig={{ text: "3", id: "three" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
+                                <ButtonControl controlConfig={{ text: "=", id: "equals" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%", height: "200%", zIndex: "1" }} />
+                            </div>
+                            <div className="d-flex flex-row justify-content-left">
+                                <ButtonControl controlConfig={{ text: "0", id: "zero" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "50%" }} />
+                                <ButtonControl controlConfig={{ text: ".", id: "decimal" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        }
+        ReactDOM.render(
+            <CalculatorApp />,
+            document.getElementById('App')
+        );
+    </script>
+
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</body>
+
+</html>

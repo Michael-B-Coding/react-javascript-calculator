@@ -12,8 +12,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.0.2/css/bootstrap.min.css">
 
     <style>
-        * {
-            font-size: 24px;
+        #App * {
+            font-size: 32px;
         }
     </style>
 
@@ -23,6 +23,22 @@
     <div id="App"></div>
 
     <script type="text/babel">
+
+        const DebugDisplay = (props) => {
+            return (
+                <div className="d-flex flex-fill flex-column">
+                    <div>Debug Display:</div>
+                    {
+                        Object.keys(props).map((propName, index) => {
+                            return (<div>
+                                <label>{propName}: </label>
+                                <label>{props[propName]}</label>
+                            </div>)
+                        })
+                    }
+                </div>
+            )
+        }
 
         const Display = (props) => {
             return (
@@ -35,10 +51,11 @@
 
         const ButtonControl = (props) => {
 
-            const css = { ...props.css };
+            const css = props.css ? { ...props.css } : { width: "25%" };
 
             return <button id={props.controlConfig.id} className="calc-control btn btn-primary rounded-0 border-dark p-2" onClick={props.handleButtonControlInput} style={css}>{props.controlConfig.text}</button>
         }
+
 
         // App
         class CalculatorApp extends React.Component {
@@ -46,100 +63,203 @@
                 super(props);
                 this.state = {
                     input: '0',
-                    result: '0'
+                    result: '0',
+                    activeInput: ['0']
                 };
 
                 this.handleButtonControlInput = this.handleButtonControlInput.bind(this);
+            }
+
+            // debug log
+            componentDidUpdate = (prevProps, prevState) => {
+                console.log(this.state.activeInput);
+            }
+
+            setDefaultState = () => {
+                this.setState({
+                    input: '0',
+                    result: '0',
+                    activeInput: ['0']
+                });
+            }
+
+            updateInput = () => {
+                // merge activeInput into the input for display
+                this.setState((prevState) => ({
+                    input: prevState.activeInput.join(' ')
+                }));
             }
 
             processCalculation = () => {
                 try {
                     this.setState((prevState) => ({
                         input: eval(prevState.input),
-                        result: prevState.input + " = " + eval(prevState.input)
+                        result: prevState.input + ' = ' + eval(prevState.input),
+                        activeInput: [eval(prevState.input)]
                     }));
                 } catch (e) {
                     console.log(e);
-                    this.setState({
-                        input: '0',
-                        result: ''
-                    });
+                    this.setDefaultState();
                 }
             }
 
-            regexBadZeroInput = (inputToTest) => {
-                // test for incorrect preceeding zero's
-                // true = matches bad test
-                var regExp = /^0[0-9].*$/;
-                return regExp.test(inputToTest);
+            addOperand = (input) => {
+                this.setState((prevState) => {
+                    let currentCell = prevState.activeInput.slice(-1)[0];
+                    let currentCellHasOperand = currentCell == '+' || currentCell == '*' || currentCell == '/' || currentCell == '-' ? true : false;
+                    let prevCell = prevState.activeInput.slice(-2, -1)[0];
+                    let prevCellHasOperand = prevCell == '+' || prevCell == '*' || prevCell == '/' || prevCell == '-' ? true : false;
+
+                    // current cell and one cell prior have operands, need to merge them. E.g., ['9','*','-'], newInput to add '-', -> ['9', '-']
+                    if (currentCellHasOperand && prevCellHasOperand) {
+                        return ({
+                            activeInput: [...prevState.activeInput.slice(0, -2), input]
+                        })
+                    }
+
+                    // current cell has operand but prior cell does not, replace current cell with new operand. E.g., ['9','*'], newInput to add '/', -> ['9', '/']
+                    if (currentCellHasOperand && !prevCellHasOperand) {
+                        return ({
+                            activeInput: [...prevState.activeInput.slice(0, -1), input]
+                        })
+                    }
+
+                    // default, add input as new cell
+                    return ({
+                        activeInput: [...prevState.activeInput, input]
+                    })
+                });
             }
+
+            addDecimal = () => {
+                this.setState((prevState) => {
+                    let currentCell = prevState.activeInput.slice(-1)[0];
+                    let currentCellHasOperand = currentCell == '+' || currentCell == '*' || currentCell == '/' || currentCell == '-' ? true : false;
+                    let hasDecimal = String(currentCell).includes('.');
+
+                    // if current cell already has a '.', cant allow another '.' to be entered
+                    if (hasDecimal) {
+                        return;
+                    }
+
+                    // if current cell has an operand, start a new number
+                    if (currentCellHasOperand) {
+                        return ({
+                            activeInput: [...prevState.activeInput, '0.']
+                        })
+                    }
+
+                    // default, append '.' to current cell
+                    return ({
+                        activeInput: [...prevState.activeInput.slice(0, -1), currentCell + '.']
+                    })
+                });
+            };
+
+            addNegative = () => {
+                this.setState((prevState) => {
+                    let currentCell = prevState.activeInput.slice(-1)[0];
+                    let currentCellHasOperand = currentCell == '+' || currentCell == '*' || currentCell == '/' || currentCell == '-' ? true : false;
+                    let beginsWithAndContainsOnlyZero = currentCell == '0' ? true : false;
+                    let prevCell = prevState.activeInput.slice(-2, -1)[0];
+                    let prevCellHasOperand = prevCell == '+' || prevCell == '*' || prevCell == '/' || prevCell == '-' ? true : false;
+
+                    // cell only has zero, need to replace with the number input. Bad case '02', convert to '2'
+                    if (beginsWithAndContainsOnlyZero) {
+                        return ({
+                            activeInput: [...prevState.activeInput.slice(0, -1), '-']
+                        })
+                    }
+
+                    // current cell and one cell prior have operands, need to merge them. E.g., ['9','*','-'], newInput to add '-', -> ['9', '-']
+                    if (currentCellHasOperand && prevCellHasOperand) {
+                        return ({
+                            activeInput: [...prevState.activeInput.slice(0, -2), '-']
+                        })
+                    }
+
+                    // default, add '-' to new cell
+                    return ({
+                        activeInput: [...prevState.activeInput, '-']
+                    })
+                });
+            }
+
+            addNumber = (input) => {
+                this.setState((prevState) => {
+                    let currentCell = prevState.activeInput.slice(-1)[0];
+                    let currentCellHasOperand = currentCell == '+' || currentCell == '*' || currentCell == '/' ? true : false
+                    let beginsWithAndContainsOnlyZero = currentCell == '0' ? true : false;
+                    let beginsWithAndContainsOnlyZeroAndDecimal = currentCell == '0.' ? true : false;
+
+                    // cell contains valid input to append number input
+                    if (beginsWithAndContainsOnlyZeroAndDecimal) {
+                        return ({
+                            activeInput: [...prevState.activeInput.slice(0, -1), currentCell + input]
+                        })
+                    }
+
+                    // cell only has zero, need to replace with the number input. Bad case '02', convert to '2'
+                    if (beginsWithAndContainsOnlyZero) {
+                        return ({
+                            activeInput: [...prevState.activeInput.slice(0, -1), input]
+                        })
+                    }
+
+                    // cell has an operand (excluding '-' for negative numbers), so, add number to new cell
+                    if (currentCellHasOperand) {
+                        return ({
+                            activeInput: [...prevState.activeInput, input]
+                        })
+                    }
+
+                    // default append to current cell
+                    return ({
+                        activeInput: [...prevState.activeInput.slice(0, -1), currentCell + input]
+                    })
+                });
+            };
 
             handleButtonControlInput = (e) => {
-                console.log(e.target.id);
-                switch (e.target.id) {
-                    case "equals":
-                        this.processCalculation()
+                let action = e.target.id;
+                let input = e.target.innerText;
+
+                switch (action) {
+                    case 'equals':
+                        this.processCalculation();
                         break;
-                    case "clear":
-                        this.setState((prevState) => ({
-                            input: '0',
-                            result: ''
-                        }));
+                    case 'clear':
+                        this.setDefaultState();
                         break;
-                    case "multiply":
-                        this.setState((prevState) => ({
-                            input: prevState.input + '*',
-                            result: prevState.result
-                        }));
+                    case 'subtract':
+                        this.addNegative();
+                        this.updateInput();
                         break;
-                    case "divide":
-                        this.setState((prevState) => ({
-                            input: prevState.input + '/',
-                            result: prevState.result
-                        }));
+                    case 'add':
+                    case 'multiply':
+                    case 'divide':
+                        this.addOperand(input);
+                        this.updateInput();
                         break;
-                    case "add":
-                        this.setState((prevState) => ({
-                            input: prevState.input + '+',
-                            result: prevState.result
-                        }));
+                    case 'zero':
+                    case 'one':
+                    case 'two':
+                    case 'three':
+                    case 'four':
+                    case 'five':
+                    case 'six':
+                    case 'seven':
+                    case 'eight':
+                    case 'nine':
+                        this.addNumber(input);
+                        this.updateInput();
                         break;
-                    case "subtract":
-                        this.setState((prevState) => ({
-                            input: prevState.input + '-',
-                            result: prevState.result
-                        }));
-                        break;
-                    case "decimal":
-                        this.setState((prevState) => ({
-                            input: prevState.input + '.',
-                            result: prevState.result
-                        }));
-                        break;
-                    case "one":
-                    case "two":
-                    case "three":
-                    case "four":
-                    case "five":
-                    case "six":
-                    case "seven":
-                    case "eight":
-                    case "nine":
-                        this.setState((prevState) => {
-                            return ({
-                                input: prevState.input == '0' ? e.target.innerText : prevState.input + e.target.innerText,
-                                result: prevState.result
-                            })
-                        });
-                        break;
-                    case "zero":
-                        this.setState((prevState) => ({
-                            input: prevState.input == '0' ? prevState.input : prevState.input + e.target.innerText,
-                            result: prevState.result
-                        }));
+                    case 'decimal':
+                        this.addDecimal();
+                        this.updateInput();
                         break;
                 }
-            };
+            }
 
             render() {
 
@@ -148,13 +268,15 @@
                 }
 
                 return (
-                    <div className="d-flex justify-content-center border border-primary">
+                    /* The buttons should be dynamically rendered from a config source */
+                    /* The buttons should also except an output value that passes back to the parent handleButtonControlInput function what the button should output into the equation */
+                    <div className="d-flex justify-content-center">
                         <div className="d-flex flex-column justify-content-center border border-dark" style={style}>
                             <Display input={this.state.input} result={this.state.result} />
                             <div className="d-flex flex-row">
                                 <ButtonControl controlConfig={{ text: "AC", id: "clear" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "50%" }} />
                                 <ButtonControl controlConfig={{ text: "/", id: "divide" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
-                                <ButtonControl controlConfig={{ text: "X", id: "multiply" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
+                                <ButtonControl controlConfig={{ text: "*", id: "multiply" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
                             </div>
                             <div className="d-flex flex-row">
                                 <ButtonControl controlConfig={{ text: "7", id: "seven" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
@@ -178,6 +300,7 @@
                                 <ButtonControl controlConfig={{ text: "0", id: "zero" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "50%" }} />
                                 <ButtonControl controlConfig={{ text: ".", id: "decimal" }} handleButtonControlInput={this.handleButtonControlInput} css={{ width: "25%" }} />
                             </div>
+                            <DebugDisplay activeInput={JSON.stringify(this.state.activeInput)} input={this.state.input} result={this.state.result}/>
                         </div>
                     </div>
                 )
@@ -193,8 +316,6 @@
     <script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 </body>
 
 </html>
